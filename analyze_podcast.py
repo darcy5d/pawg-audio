@@ -1,54 +1,47 @@
+import os
+from datetime import datetime
 from podcast_analyzer import PodcastAnalyzer
 import json
-from pathlib import Path
 
-def main():
-    # Define speaker context for this specific podcast
-    speaker_context = {
-        "Host 1": "Grant Williams - Main host of The End Game podcast, known for his expertise in macroeconomics and markets",
-        "Host 2": "Bill Fleckenstein - Co-host of The End Game podcast, veteran investor and market commentator",
-        "Guest": "Fred Hickey - Technology analyst and editor of the High-Tech Strategist newsletter, known for his expertise in technology stocks and market analysis"
-    }
+def analyze_february_episodes():
+    base_dir = "podcast_analysis/podcasts/grant_williams/episodes"
     
-    # Initialize the analyzer with speaker context
-    analyzer = PodcastAnalyzer(speaker_context=speaker_context)
+    # Get all February 2025 episodes
+    february_episodes = [
+        d for d in os.listdir(base_dir)
+        if d.startswith("2025-02-") and os.path.isdir(os.path.join(base_dir, d))
+    ]
     
-    # Path to the podcast file
-    podcast_path = "the_grant_williams_p_the_end_game_ep_55_f.mp3"
+    analyzer = PodcastAnalyzer()
     
-    # Verify the file exists
-    if not Path(podcast_path).exists():
-        print(f"❌ Error: File not found at {podcast_path}")
-        return
-    
-    print(f"✅ Found podcast file: {podcast_path}")
-    print("Starting analysis... This may take a few minutes...")
-    
-    try:
-        # Analyze the episode
-        results = analyzer.analyze_episode(podcast_path)
+    for episode_dir in february_episodes:
+        print(f"\nAnalyzing episode: {episode_dir}")
         
-        # Save results to a JSON file
-        output_file = "podcast_analysis_results.json"
-        with open(output_file, "w") as f:
-            json.dump(results, f, indent=2)
+        # Find the audio file in the episode directory
+        episode_path = os.path.join(base_dir, episode_dir)
+        audio_files = [f for f in os.listdir(episode_path) if f.endswith('.mp3')]
         
-        print(f"\n✅ Analysis complete!")
-        print(f"Results saved to: {output_file}")
+        if not audio_files:
+            print(f"No audio file found in {episode_dir}")
+            continue
+            
+        audio_path = os.path.join(episode_path, audio_files[0])
         
-        # Print a summary of the results
-        print("\n=== Analysis Summary ===")
-        print("\nTranscript Preview:")
-        print(results["transcription"]["transcript"][:500] + "...")
-        
-        print("\nSpeaker Identification Preview:")
-        print(results["transcription"]["speaker_identification"][:500] + "...")
-        
-        print("\nContent Analysis Preview:")
-        print(results["analysis"]["content_analysis"][:500] + "...")
-        
-    except Exception as e:
-        print(f"❌ Error during analysis: {str(e)}")
+        try:
+            # Analyze the episode
+            analysis_result = analyzer.analyze_episode(audio_path)
+            
+            # Save the analysis results
+            output_dir = os.path.join("podcast_analysis/podcasts/grant_williams/summaries", episode_dir)
+            os.makedirs(output_dir, exist_ok=True)
+            
+            with open(os.path.join(output_dir, "analysis.json"), "w") as f:
+                json.dump(analysis_result, f, indent=2)
+                
+            print(f"Successfully analyzed and saved results for {episode_dir}")
+            
+        except Exception as e:
+            print(f"Error analyzing {episode_dir}: {str(e)}")
 
 if __name__ == "__main__":
-    main() 
+    analyze_february_episodes() 
