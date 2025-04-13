@@ -507,4 +507,58 @@ class PodcastFeedAnalyzer:
         # Update feed statistics
         self.feed_manager.update_feed_stats(self.podcast_name, len(episodes))
         
-        print("\nAnalysis complete! Results saved in:", self.podcast_dir) 
+        print("\nAnalysis complete! Results saved in:", self.podcast_dir)
+
+    def analyze_episode_from_url(self, audio_url: str, episode_title: str, published_date: str = None) -> bool:
+        """
+        Download and analyze an episode from its URL.
+        
+        Args:
+            audio_url (str): URL of the audio file
+            episode_title (str): Title of the episode
+            published_date (str): Published date of the episode in RSS format (e.g., 'Thu, 21 Mar 2024 11:04:23 +0000')
+            
+        Returns:
+            bool: True if analysis was successful, False otherwise
+        """
+        try:
+            # Parse the published date from RSS format
+            if published_date:
+                try:
+                    # Parse the RSS date format
+                    parsed_date = time.strptime(published_date, "%a, %d %b %Y %H:%M:%S %z")
+                    # Convert to YYYY-MM-DD format
+                    formatted_date = time.strftime("%Y-%m-%d", parsed_date)
+                except ValueError:
+                    print(f"Warning: Could not parse date {published_date}, using current date")
+                    formatted_date = time.strftime("%Y-%m-%d")
+            else:
+                formatted_date = time.strftime("%Y-%m-%d")
+            
+            # Create a temporary episode dictionary
+            episode = {
+                'title': episode_title,
+                'audio_url': audio_url,
+                'published': formatted_date,
+                'published_parsed': time.strptime(formatted_date, "%Y-%m-%d"),
+                'description': '',
+                'podcast_name': self.podcast_name
+            }
+            
+            # Download the episode
+            audio_path = self.download_episode(episode)
+            if not audio_path:
+                print(f"Failed to download episode: {episode_title}")
+                return False
+            
+            # Analyze the episode
+            analysis = self.analyze_episode(episode, audio_path)
+            if not analysis:
+                print(f"Failed to analyze episode: {episode_title}")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error processing episode {episode_title}: {str(e)}")
+            return False 
